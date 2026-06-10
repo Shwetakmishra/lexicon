@@ -71,8 +71,6 @@ function AddWordModal({ tags, onClose, onAdd }) {
   const [status, setStatus] = React.useState("idle"); // idle | loading | ready | error
   const [enriched, setEnriched] = React.useState(null);
   const [error, setError] = React.useState("");
-  const [savedKey, setSavedKey] = React.useState(() => getApiKey());
-  const [keyInput, setKeyInput] = React.useState("");
   const inputRef = React.useRef(null);
 
   React.useEffect(() => { inputRef.current && inputRef.current.focus(); }, []);
@@ -92,20 +90,8 @@ function AddWordModal({ tags, onClose, onAdd }) {
       setStatus("ready");
     } catch (e) {
       setStatus("error");
-      setError(
-        e.message === "NO_API_KEY"
-          ? "Enter your Anthropic API key above to enable AI enrichment."
-          : "Couldn’t generate details. Check your API key and connection, or add the word and fill details later."
-      );
+      setError("Couldn’t generate details. Check your connection or add the word and fill details later.");
     }
-  }
-
-  function handleSaveKey() {
-    const k = keyInput.trim();
-    if (!k) return;
-    saveApiKey(k);
-    setSavedKey(k);
-    setKeyInput("");
   }
 
   function handleSave() {
@@ -177,34 +163,6 @@ function AddWordModal({ tags, onClose, onAdd }) {
               />
             )}
           </div>
-
-          {!savedKey ? (
-            <div className="field">
-              <label>Gemini API key <span style={{ fontWeight: 400, color: "var(--color-text-muted, #888)" }}>— needed for AI enrichment (free tier available)</span></label>
-              <div style={{ display: "flex", gap: 8 }}>
-                <input
-                  type="password"
-                  className="word-input"
-                  style={{ flex: 1 }}
-                  value={keyInput}
-                  placeholder="AIza..."
-                  onChange={(e) => setKeyInput(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === "Enter") handleSaveKey(); }}
-                />
-                <button className="btn btn-secondary" onClick={handleSaveKey} disabled={!keyInput.trim()}>Save</button>
-              </div>
-            </div>
-          ) : (
-            <div style={{ textAlign: "right" }}>
-              <button
-                className="btn btn-ghost"
-                style={{ fontSize: 12, padding: "2px 6px" }}
-                onClick={() => { saveApiKey(""); setSavedKey(""); setKeyInput(""); }}
-              >
-                Change API key
-              </button>
-            </div>
-          )}
 
           {status === "idle" && (
             <button className="btn btn-secondary btn-block" onClick={handleEnrich} disabled={!word.trim()}>
@@ -305,16 +263,15 @@ function WordBank({ words, tags, onMaster, onDelete, onAdd, openAdd, setOpenAdd 
         </div>
       </div>
 
-      <div className="filter-pills" style={{ marginBottom: "calc(18px * var(--density-unit))" }}>
-        <button className={`filter-pill ${filter === "all" ? "active" : ""}`} onClick={() => setFilter("all")}>
-          All
-        </button>
-        {tags.map((t) => (
-          <button key={t} className={`filter-pill ${filter === t ? "active" : ""}`} onClick={() => setFilter(t)}>
-            {t}
-          </button>
-        ))}
-      </div>
+      {tags.length > 0 && (
+        <div className="filter-pills" style={{ marginBottom: "calc(18px * var(--density-unit))" }}>
+          {tags.map((t) => (
+            <button key={t} className={`filter-pill ${filter === t ? "active" : ""}`} onClick={() => setFilter(filter === t ? "all" : t)}>
+              {t}
+            </button>
+          ))}
+        </div>
+      )}
 
       {filtered.length === 0 ? (
         query || filter !== "all" ? (

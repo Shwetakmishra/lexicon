@@ -44,7 +44,7 @@ function App() {
         setState({
           words: saved.words,
           activityDates: saved.activityDates || [],
-          tags: saved.tags && saved.tags.length ? saved.tags : ["GRE", "work", "hindi"],
+          tags: saved.tags || [],
         });
       } else {
         setState(defaultState());

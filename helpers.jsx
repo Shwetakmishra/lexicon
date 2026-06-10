@@ -120,64 +120,21 @@ function uid() {
 }
 
 /* ============================================================
-   API key storage
-   ============================================================ */
-const API_KEY_STORAGE = "lexicon-gemini-key";
-
-function getApiKey() {
-  try { return localStorage.getItem(API_KEY_STORAGE) || ""; } catch (e) { return ""; }
-}
-function saveApiKey(key) {
-  try {
-    if (key) localStorage.setItem(API_KEY_STORAGE, key);
-    else localStorage.removeItem(API_KEY_STORAGE);
-  } catch (e) { /* ignore */ }
-}
-
-/* ============================================================
-   Enrichment — calls Gemini API directly with user's key
+   Enrichment — proxied through /api/enrich (key stays server-side)
    ============================================================ */
 async function enrichWord(word) {
-  const apiKey = getApiKey();
-  if (!apiKey) throw new Error("NO_API_KEY");
-
-  const prompt = `You are a vocabulary tutor. For the word "${word}", return a JSON object with exactly these keys:
-- "definition": a clear, concise definition (one sentence, no more than 22 words). Do not restate the word at the start.
-- "example": one natural example sentence that uses the word "${word}" in context.
-- "memoryHook": a short, vivid mnemonic or memory trick (one sentence) to help remember the meaning.
-
-Respond with ONLY the raw JSON object, no markdown, no code fences, no commentary.`;
-
-  const resp = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=${encodeURIComponent(apiKey)}`,
-    {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
-      }),
-    }
-  );
+  const resp = await fetch("/api/enrich", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ word }),
+  });
 
   if (!resp.ok) {
     const err = await resp.json().catch(() => ({}));
-    throw new Error(err?.error?.message || `API error ${resp.status}`);
+    throw new Error(err?.error || `API error ${resp.status}`);
   }
 
-  const data = await resp.json();
-  let txt = (data.candidates?.[0]?.content?.parts?.[0]?.text || "").trim();
-  const fence = txt.match(/```(?:json)?\s*([\s\S]*?)```/);
-  if (fence) txt = fence[1].trim();
-  const first = txt.indexOf("{");
-  const last = txt.lastIndexOf("}");
-  if (first !== -1 && last !== -1) txt = txt.slice(first, last + 1);
-
-  const parsed = JSON.parse(txt);
-  return {
-    definition: (parsed.definition || "").trim(),
-    example: (parsed.example || "").trim(),
-    memoryHook: (parsed.memoryHook || parsed.hook || "").trim(),
-  };
+  return await resp.json();
 }
 
 /* ============================================================
@@ -257,7 +214,7 @@ function defaultState() {
   return {
     words: seedWords(),
     activityDates: [todayKey(), todayKey(new Date(Date.now() - DAY_MS)), todayKey(new Date(Date.now() - 2 * DAY_MS))],
-    tags: ["GRE"],
+    tags: [],
   };
 }
 
@@ -267,5 +224,4 @@ Object.assign(window, {
   SR_INTERVALS, SR_LABELS, intervalDays, isDue, dueWords,
   computeStreak, addedThisWeek,
   tagColor, TAG_PALETTE, uid, enrichWord,
-  getApiKey, saveApiKey,
 });
