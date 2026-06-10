@@ -180,14 +180,14 @@ function AddWordModal({ tags, onClose, onAdd }) {
 
           {!savedKey ? (
             <div className="field">
-              <label>Anthropic API key <span style={{ fontWeight: 400, color: "var(--color-text-muted, #888)" }}>— needed for AI enrichment</span></label>
+              <label>Gemini API key <span style={{ fontWeight: 400, color: "var(--color-text-muted, #888)" }}>— needed for AI enrichment (free tier available)</span></label>
               <div style={{ display: "flex", gap: 8 }}>
                 <input
                   type="password"
                   className="word-input"
                   style={{ flex: 1 }}
                   value={keyInput}
-                  placeholder="sk-ant-..."
+                  placeholder="AIza..."
                   onChange={(e) => setKeyInput(e.target.value)}
                   onKeyDown={(e) => { if (e.key === "Enter") handleSaveKey(); }}
                 />

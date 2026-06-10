@@ -122,7 +122,7 @@ function uid() {
 /* ============================================================
    API key storage
    ============================================================ */
-const API_KEY_STORAGE = "lexicon-anthropic-key";
+const API_KEY_STORAGE = "lexicon-gemini-key";
 
 function getApiKey() {
   try { return localStorage.getItem(API_KEY_STORAGE) || ""; } catch (e) { return ""; }
@@ -135,7 +135,7 @@ function saveApiKey(key) {
 }
 
 /* ============================================================
-   Enrichment — calls Anthropic API directly with user's key
+   Enrichment — calls Gemini API directly with user's key
    ============================================================ */
 async function enrichWord(word) {
   const apiKey = getApiKey();
@@ -148,20 +148,16 @@ async function enrichWord(word) {
 
 Respond with ONLY the raw JSON object, no markdown, no code fences, no commentary.`;
 
-  const resp = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: {
-      "x-api-key": apiKey,
-      "anthropic-version": "2023-06-01",
-      "anthropic-dangerous-direct-browser-access": "true",
-      "content-type": "application/json",
-    },
-    body: JSON.stringify({
-      model: "claude-haiku-4-5-20251001",
-      max_tokens: 512,
-      messages: [{ role: "user", content: prompt }],
-    }),
-  });
+  const resp = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=${encodeURIComponent(apiKey)}`,
+    {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }],
+      }),
+    }
+  );
 
   if (!resp.ok) {
     const err = await resp.json().catch(() => ({}));
@@ -169,7 +165,7 @@ Respond with ONLY the raw JSON object, no markdown, no code fences, no commentar
   }
 
   const data = await resp.json();
-  let txt = (data.content?.[0]?.text || "").trim();
+  let txt = (data.candidates?.[0]?.content?.parts?.[0]?.text || "").trim();
   const fence = txt.match(/```(?:json)?\s*([\s\S]*?)```/);
   if (fence) txt = fence[1].trim();
   const first = txt.indexOf("{");
