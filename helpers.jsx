@@ -120,21 +120,68 @@ function uid() {
 }
 
 /* ============================================================
-   Enrichment — proxied through /api/enrich (key stays server-side)
+   Enrichment — direct Anthropic API call (key stored in localStorage)
    ============================================================ */
+const API_KEY_STORAGE = "lexicon-anthropic-key";
+
+function getApiKey() {
+  try { return localStorage.getItem(API_KEY_STORAGE) || ""; } catch (e) { return ""; }
+}
+function saveApiKey(key) {
+  try {
+    if (key) localStorage.setItem(API_KEY_STORAGE, key);
+    else localStorage.removeItem(API_KEY_STORAGE);
+  } catch (e) { /* ignore */ }
+}
+
 async function enrichWord(word) {
-  const resp = await fetch("/api/enrich", {
+  const apiKey = getApiKey();
+  if (!apiKey) throw new Error("NO_API_KEY");
+
+  const w = word.trim();
+  const prompt = `You are a vocabulary tutor helping Indian students. For the word "${w}", return a JSON object with exactly these keys:
+- "definition": a clear, concise definition (one sentence, no more than 22 words). Do not restate the word at the start.
+- "example": one natural example sentence that uses the word "${w}" in context.
+- "memoryHook": a short, vivid mnemonic using Indian cultural references — Bollywood, cricket, mythology, street food, festivals, or everyday Indian life — to make the word unforgettable. One sentence only.
+
+Respond with ONLY the raw JSON object, no markdown, no code fences, no commentary.`;
+
+  const resp = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ word }),
+    headers: {
+      "x-api-key": apiKey,
+      "anthropic-version": "2023-06-01",
+      "anthropic-dangerous-direct-browser-access": "true",
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({
+      model: "claude-haiku-4-5",
+      max_tokens: 512,
+      messages: [{ role: "user", content: prompt }],
+    }),
   });
 
   if (!resp.ok) {
     const err = await resp.json().catch(() => ({}));
-    throw new Error(err?.error || `API error ${resp.status}`);
+    if (resp.status === 401) throw new Error("INVALID_KEY");
+    throw new Error(err?.error?.message || `API error ${resp.status}`);
   }
 
-  return await resp.json();
+  const data = await resp.json();
+  let txt = (data.content?.[0]?.text || "").trim();
+
+  const fence = txt.match(/```(?:json)?\s*([\s\S]*?)```/);
+  if (fence) txt = fence[1].trim();
+  const first = txt.indexOf("{");
+  const last = txt.lastIndexOf("}");
+  if (first !== -1 && last !== -1) txt = txt.slice(first, last + 1);
+
+  const parsed = JSON.parse(txt);
+  return {
+    definition: (parsed.definition || "").trim(),
+    example: (parsed.example || "").trim(),
+    memoryHook: (parsed.memoryHook || parsed.hook || "").trim(),
+  };
 }
 
 /* ============================================================
@@ -223,5 +270,5 @@ Object.assign(window, {
   todayKey, dayDiff, fmtDate, relDate, DAY_MS,
   SR_INTERVALS, SR_LABELS, intervalDays, isDue, dueWords,
   computeStreak, addedThisWeek,
-  tagColor, TAG_PALETTE, uid, enrichWord,
+  tagColor, TAG_PALETTE, uid, enrichWord, getApiKey, saveApiKey, API_KEY_STORAGE,
 });

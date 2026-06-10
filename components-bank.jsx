@@ -71,9 +71,21 @@ function AddWordModal({ tags, onClose, onAdd }) {
   const [status, setStatus] = React.useState("idle"); // idle | loading | ready | error
   const [enriched, setEnriched] = React.useState(null);
   const [error, setError] = React.useState("");
+  const [savedKey, setSavedKey] = React.useState(() => getApiKey());
+  const [keyInput, setKeyInput] = React.useState("");
   const inputRef = React.useRef(null);
 
   React.useEffect(() => { inputRef.current && inputRef.current.focus(); }, []);
+
+  function handleSaveKey() {
+    const k = keyInput.trim();
+    if (!k) return;
+    saveApiKey(k);
+    setSavedKey(k);
+    setKeyInput("");
+    setStatus("idle");
+    setError("");
+  }
 
   const effectiveTag = showNewTag ? newTag.trim() : tag;
 
@@ -90,7 +102,9 @@ function AddWordModal({ tags, onClose, onAdd }) {
       setStatus("ready");
     } catch (e) {
       setStatus("error");
-      setError("Couldn’t generate details. Check your connection or add the word and fill details later.");
+      setError(e.message === "NO_API_KEY" || e.message === "INVALID_KEY"
+        ? "NO_API_KEY"
+        : "Couldn’t generate details. Check your connection or add the word and fill details later.");
     }
   }
 
@@ -164,8 +178,25 @@ function AddWordModal({ tags, onClose, onAdd }) {
             )}
           </div>
 
+          {!savedKey && (
+            <div className="field">
+              <label>Anthropic API Key</label>
+              <div style={{ display: "flex", gap: 8 }}>
+                <input
+                  value={keyInput}
+                  type="password"
+                  placeholder="sk-ant-…"
+                  onChange={(e) => setKeyInput(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter") handleSaveKey(); }}
+                  style={{ flex: 1 }}
+                />
+                <button className="btn btn-secondary" onClick={handleSaveKey} disabled={!keyInput.trim()}>Save</button>
+              </div>
+              <div style={{ fontSize: 12, color: "var(--color-text-3)", marginTop: 4 }}>Stored locally, never shared.</div>
+            </div>
+          )}
           {status === "idle" && (
-            <button className="btn btn-secondary btn-block" onClick={handleEnrich} disabled={!word.trim()}>
+            <button className="btn btn-secondary btn-block" onClick={handleEnrich} disabled={!word.trim() || !savedKey}>
               <Icon name="sparkles" />Generate definition, example &amp; hook
             </button>
           )}
@@ -175,7 +206,23 @@ function AddWordModal({ tags, onClose, onAdd }) {
               <span>Enriching “{word.trim()}” with AI…</span>
             </div>
           )}
-          {status === "error" && (
+          {status === "error" && error === "NO_API_KEY" && (
+            <div className="field">
+              <div className="error-banner" style={{ marginBottom: 8 }}><Icon name="alert-triangle" />Add your Anthropic API key to generate definitions.</div>
+              <div style={{ display: "flex", gap: 8 }}>
+                <input
+                  value={keyInput}
+                  type="password"
+                  placeholder="sk-ant-…"
+                  onChange={(e) => setKeyInput(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter") handleSaveKey(); }}
+                  style={{ flex: 1 }}
+                />
+                <button className="btn btn-secondary" onClick={handleSaveKey} disabled={!keyInput.trim()}>Save</button>
+              </div>
+            </div>
+          )}
+          {status === "error" && error !== "NO_API_KEY" && (
             <>
               <div className="error-banner"><Icon name="alert-triangle" />{error}</div>
               <button className="btn btn-secondary btn-block" onClick={handleEnrich}>
