@@ -65,7 +65,7 @@ function WordRow({ word, open, onToggle, onMaster, onEdit, onDelete }) {
 /* ---- Add-word modal ---- */
 function AddWordModal({ tags, onClose, onAdd }) {
   const [word, setWord] = React.useState("");
-  const [tag, setTag] = React.useState(tags[0] || "GRE");
+  const [tag, setTag] = React.useState(tags[0] || "");
   const [newTag, setNewTag] = React.useState("");
   const [showNewTag, setShowNewTag] = React.useState(false);
   const [status, setStatus] = React.useState("idle"); // idle | loading | ready | error
@@ -100,7 +100,7 @@ function AddWordModal({ tags, onClose, onAdd }) {
     onAdd({
       id: uid(),
       word: w,
-      tag: effectiveTag || "GRE",
+      tag: effectiveTag || "",
       definition: enriched?.definition || "",
       example: enriched?.example || "",
       memoryHook: enriched?.memoryHook || "",
