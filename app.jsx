@@ -41,10 +41,11 @@ function App() {
     (async () => {
       const saved = await store.get(STORAGE_KEY);
       if (saved && Array.isArray(saved.words)) {
+        const stripGre = (t) => (t === "GRE" || t === "gre" ? "" : t);
         setState({
-          words: saved.words,
+          words: saved.words.map((w) => ({ ...w, tag: stripGre(w.tag || "") })),
           activityDates: saved.activityDates || [],
-          tags: saved.tags || [],
+          tags: (saved.tags || []).filter((t) => t !== "GRE" && t !== "gre"),
         });
       } else {
         setState(defaultState());
