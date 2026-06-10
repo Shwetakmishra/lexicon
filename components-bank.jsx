@@ -312,6 +312,9 @@ function WordBank({ words, tags, onMaster, onDelete, onAdd, openAdd, setOpenAdd 
 
       {tags.length > 0 && (
         <div className="filter-pills" style={{ marginBottom: "calc(18px * var(--density-unit))" }}>
+          <button className={`filter-pill ${filter === "all" ? "active" : ""}`} onClick={() => setFilter("all")}>
+            All
+          </button>
           {tags.map((t) => (
             <button key={t} className={`filter-pill ${filter === t ? "active" : ""}`} onClick={() => setFilter(filter === t ? "all" : t)}>
               {t}
