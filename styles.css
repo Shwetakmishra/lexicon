@@ -199,6 +199,7 @@ input, textarea, select { font-family: inherit; font-size: inherit; color: inher
 .main {
   overflow-y: auto;
   height: 100%;
+  scrollbar-gutter: stable;
 }
 .main-inner {
   max-width: 920px;
