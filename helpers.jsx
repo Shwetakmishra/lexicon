@@ -142,7 +142,7 @@ async function enrichWord(word) {
   const prompt = `You are a vocabulary tutor helping Indian students. For the word "${w}", return a JSON object with exactly these keys:
 - "definition": a clear, concise definition (one sentence, no more than 22 words). Do not restate the word at the start.
 - "example": one natural example sentence that uses the word "${w}" in context.
-- "memoryHook": a short, vivid mnemonic to make the word unforgettable. Use wordplay, etymology, imagery, or a relatable scenario. Occasionally (not always) weave in an Indian cultural touch — a Bollywood scene, cricket moment, festival, or street-food analogy — but only when it feels natural and adds real clarity. One sentence only.
+- "memoryHook": a short, vivid mnemonic that breaks the word "${w}" into its sounds or syllables and builds a memorable image from them, tied to the word's meaning. For example, for "castigate": "Think of a CASTLE GATE slamming shut in someone's face — being castigated is being shut out and scolded by someone in power." Always anchor the hook in how the word sounds or is spelled. Do NOT use Indian cultural references unless the word's sound genuinely evokes one. One or two sentences.
 
 Respond with ONLY the raw JSON object, no markdown, no code fences, no commentary.`;
 
