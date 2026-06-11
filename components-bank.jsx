@@ -321,6 +321,8 @@ function WordBank({ words, tags, onMaster, onDelete, onAdd, onEditTag, openAdd, 
 
   // reset to page 1 when filters change
   React.useEffect(() => { setPage(1); }, [query, filter]);
+  // reset filter if its tag is removed
+  React.useEffect(() => { if (filter !== "all" && !tags.includes(filter)) setFilter("all"); }, [tags]);
 
   const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const safePage = Math.min(page, pageCount);
@@ -354,7 +356,7 @@ function WordBank({ words, tags, onMaster, onDelete, onAdd, onEditTag, openAdd, 
           <button className={`filter-pill ${filter === "all" ? "active" : ""}`} onClick={() => setFilter("all")}>
             All
           </button>
-          {tags.map((t) => (
+          {tags.filter(Boolean).map((t) => (
             <button key={t} className={`filter-pill ${filter === t ? "active" : ""}`} onClick={() => setFilter(filter === t ? "all" : t)}>
               {t}
             </button>

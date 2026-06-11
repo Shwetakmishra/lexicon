@@ -80,19 +80,27 @@ function App() {
   /* ---- mutations ---- */
   const addWord = React.useCallback((word) => {
     setState((s) => {
-      const tags = s.tags.includes(word.tag) ? s.tags : [...s.tags, word.tag];
+      const tags = word.tag && !s.tags.includes(word.tag) ? [...s.tags, word.tag] : s.tags;
       return { ...s, words: [word, ...s.words], tags, activityDates: recordActivity(s.activityDates) };
     });
   }, []);
 
   const deleteWord = React.useCallback((id) => {
-    setState((s) => ({ ...s, words: s.words.filter((w) => w.id !== id) }));
+    setState((s) => {
+      const words = s.words.filter((w) => w.id !== id);
+      const usedTags = new Set(words.map((w) => w.tag).filter(Boolean));
+      return { ...s, words, tags: s.tags.filter((t) => usedTags.has(t)) };
+    });
   }, []);
 
   const editWordTag = React.useCallback((id, tag) => {
     setState((s) => {
-      const tags = tag && !s.tags.includes(tag) ? [...s.tags, tag] : s.tags;
-      return { ...s, words: s.words.map((w) => w.id === id ? { ...w, tag } : w), tags };
+      const words = s.words.map((w) => w.id === id ? { ...w, tag } : w);
+      const usedTags = new Set(words.map((w) => w.tag).filter(Boolean));
+      const tags = tag && !s.tags.includes(tag)
+        ? [...s.tags.filter((t) => usedTags.has(t)), tag]
+        : s.tags.filter((t) => usedTags.has(t));
+      return { ...s, words, tags };
     });
   }, []);
 
