@@ -5,7 +5,16 @@
 const PAGE_SIZE = 6;
 
 /* ---- single expandable word row ---- */
-function WordRow({ word, open, onToggle, onMaster, onEdit, onDelete }) {
+function WordRow({ word, open, onToggle, onMaster, onDelete, tags, onEditTag }) {
+  const [editingTag, setEditingTag] = React.useState(false);
+  const [newTagVal, setNewTagVal] = React.useState("");
+
+  function pickTag(t) {
+    onEditTag(word.id, t);
+    setEditingTag(false);
+    setNewTagVal("");
+  }
+
   return (
     <div className={`word-row ${open ? "open" : ""}`}>
       <div className="word-row-head" onClick={onToggle}>
@@ -50,6 +59,36 @@ function WordRow({ word, open, onToggle, onMaster, onEdit, onDelete }) {
               <span className="sep"></span>
               <span>{SR_LABELS[word.reviewLevel || 0]} · reviewed {relDate(word.lastReviewedAt)}</span>
               <div className="detail-actions">
+                {editingTag ? (
+                  <div className="tag-edit-inline">
+                    <div className="tag-picker">
+                      {(tags || []).filter(Boolean).map((t) => (
+                        <button key={t} className={`tag-pick ${word.tag === t ? "active" : ""}`}
+                          style={word.tag === t ? { background: tagColor(t).bg, color: tagColor(t).fg } : null}
+                          onClick={() => pickTag(t)}>
+                          {t}
+                        </button>
+                      ))}
+                      {word.tag && (
+                        <button className="tag-pick" onClick={() => pickTag("")}>Clear</button>
+                      )}
+                      <button className="tag-pick add-new" onClick={() => setEditingTag(false)}>
+                        <Icon name="x" style={{ fontSize: 12, marginRight: 3 }} />Cancel
+                      </button>
+                    </div>
+                    <input
+                      placeholder="Or type a new tag and press Enter…"
+                      value={newTagVal}
+                      onChange={(e) => setNewTagVal(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === "Enter" && newTagVal.trim()) pickTag(newTagVal.trim()); }}
+                      autoFocus
+                    />
+                  </div>
+                ) : (
+                  <button className="btn btn-ghost" onClick={() => setEditingTag(true)}>
+                    <Icon name="tag" />{word.tag ? word.tag : "Add tag"}
+                  </button>
+                )}
                 <button className="btn btn-ghost" onClick={() => onDelete(word.id)}>
                   <Icon name="trash" />Delete
                 </button>
@@ -266,7 +305,7 @@ function AddWordModal({ tags, onClose, onAdd }) {
 }
 
 /* ---- Word Bank view ---- */
-function WordBank({ words, tags, onMaster, onDelete, onAdd, openAdd, setOpenAdd }) {
+function WordBank({ words, tags, onMaster, onDelete, onAdd, onEditTag, openAdd, setOpenAdd }) {
   const [query, setQuery] = React.useState("");
   const [filter, setFilter] = React.useState("all");
   const [page, setPage] = React.useState(1);
@@ -349,6 +388,8 @@ function WordBank({ words, tags, onMaster, onDelete, onAdd, openAdd, setOpenAdd 
                 onToggle={() => setOpenId(openId === w.id ? null : w.id)}
                 onMaster={onMaster}
                 onDelete={onDelete}
+                tags={tags}
+                onEditTag={onEditTag}
               />
             ))}
           </div>

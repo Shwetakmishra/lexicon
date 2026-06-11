@@ -89,6 +89,13 @@ function App() {
     setState((s) => ({ ...s, words: s.words.filter((w) => w.id !== id) }));
   }, []);
 
+  const editWordTag = React.useCallback((id, tag) => {
+    setState((s) => {
+      const tags = tag && !s.tags.includes(tag) ? [...s.tags, tag] : s.tags;
+      return { ...s, words: s.words.map((w) => w.id === id ? { ...w, tag } : w), tags };
+    });
+  }, []);
+
   const toggleMaster = React.useCallback((id) => {
     setState((s) => ({
       ...s,
@@ -132,6 +139,7 @@ function App() {
   return (
     <div className="app">
       <Sidebar view={view} setView={setView} counts={counts} streak={streak} />
+      <BottomNav view={view} setView={setView} counts={counts} />
       <main className="main">
         <div className="main-inner">
           {view === "bank" && (
@@ -141,6 +149,7 @@ function App() {
               onMaster={toggleMaster}
               onDelete={deleteWord}
               onAdd={addWord}
+              onEditTag={editWordTag}
               openAdd={openAdd}
               setOpenAdd={setOpenAdd}
             />

@@ -916,3 +916,115 @@ svg.ti { width: 1em; height: 1em; vertical-align: -0.14em; flex: none; }
 .gap-8 { gap: 8px; }
 .gap-12 { gap: 12px; }
 .ml-auto { margin-left: auto; }
+
+/* tag edit inline */
+.tag-edit-inline { display: grid; gap: 8px; }
+
+/* ============================================================
+   Bottom nav (mobile only — hidden on desktop)
+   ============================================================ */
+.bottom-nav { display: none; }
+
+/* ============================================================
+   Responsive — mobile (≤ 640px)
+   ============================================================ */
+@media (max-width: 640px) {
+  .app {
+    grid-template-columns: 1fr;
+  }
+  .sidebar { display: none; }
+
+  .bottom-nav {
+    display: flex;
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    height: 62px;
+    background: var(--color-surface);
+    border-top: 1px solid var(--color-border);
+    z-index: 50;
+    padding-bottom: env(safe-area-inset-bottom, 0);
+  }
+  .bottom-nav-item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    font-size: 10.5px;
+    font-weight: 500;
+    color: var(--color-text-tertiary);
+    padding: 8px 4px;
+    position: relative;
+    transition: color .14s;
+  }
+  .bottom-nav-item .ti { font-size: 22px; }
+  .bottom-nav-item.active { color: var(--color-accent); font-weight: 600; }
+  .bottom-nav-item .nav-count {
+    position: absolute;
+    top: 6px; right: calc(50% - 18px);
+    font-size: 10px;
+    font-weight: 700;
+    background: var(--color-accent);
+    color: #fff;
+    border-radius: var(--radius-pill);
+    padding: 0 5px;
+    min-width: 16px;
+    text-align: center;
+    line-height: 16px;
+  }
+  .bottom-nav-item .nav-count.due {
+    background: var(--color-due);
+  }
+
+  .main-inner {
+    padding: 22px 16px 88px;
+  }
+
+  .page-head {
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: calc(18px * var(--density-unit));
+  }
+  .page-head .btn { width: 100%; justify-content: center; }
+
+  .toolbar { margin-bottom: 12px; }
+
+  .filter-pills {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding-bottom: 4px;
+  }
+  .filter-pills::-webkit-scrollbar { display: none; }
+
+  .word-gloss { display: none; }
+  .word-row-head { padding: 14px 16px; }
+
+  .detail-foot {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .detail-actions { margin-left: 0; width: 100%; }
+
+  .modal-overlay {
+    align-items: flex-end;
+    padding: 0;
+  }
+  .modal {
+    border-radius: 20px 20px 0 0;
+    max-width: 100%;
+    max-height: 90dvh;
+    overflow-y: auto;
+  }
+
+  .study-wrap { padding: 0 4px; }
+  .flash-card { min-height: 200px; }
+
+  .due-card { flex-wrap: wrap; }
+  .due-card .due-gloss { order: 3; width: 100%; white-space: normal; margin-top: 2px; }
+  .due-actions { margin-left: auto; }
+
+  .stat-grid { grid-template-columns: 1fr 1fr; }
+}

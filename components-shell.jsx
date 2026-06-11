@@ -93,4 +93,19 @@ function PageHead({ title, subtitle, action }) {
   );
 }
 
-Object.assign(window, { Tag, Sidebar, EmptyState, PageHead, NAV });
+function BottomNav({ view, setView, counts }) {
+  return (
+    <nav className="bottom-nav">
+      {NAV.map((n) => (
+        <button key={n.id} className={`bottom-nav-item ${view === n.id ? "active" : ""}`} onClick={() => setView(n.id)}>
+          <Icon name={n.icon} />
+          <span>{n.label}</span>
+          {n.id === "bank" && counts.total > 0 && <span className="nav-count">{counts.total}</span>}
+          {n.id === "due" && counts.due > 0 && <span className="nav-count due">{counts.due}</span>}
+        </button>
+      ))}
+    </nav>
+  );
+}
+
+Object.assign(window, { Tag, Sidebar, BottomNav, EmptyState, PageHead, NAV });
