@@ -157,6 +157,7 @@ function AddWordModal({ tags, onClose, onAdd }) {
       definition: enriched?.definition || "",
       example: enriched?.example || "",
       memoryHook: enriched?.memoryHook || "",
+      hookTheme: enriched?.hookTheme || "",
       mastered: false,
       reviewLevel: 0,
       lastReviewedAt: null,

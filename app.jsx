@@ -31,33 +31,49 @@ const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
 
 function App() {
   const [t, setTweak] = useTweaks(TWEAK_DEFAULTS);
-  const [state, setState] = React.useState(null);
+  const [words, setWords] = React.useState(null); // null = still loading
+  const [activityDates, setActivityDates] = React.useState(getActivityDates);
   const [view, setView] = React.useState("bank");
   const [openAdd, setOpenAdd] = React.useState(false);
-  const loaded = React.useRef(false);
 
-  /* ---- load persisted state ---- */
-  React.useEffect(() => {
-    (async () => {
-      const saved = await store.get(STORAGE_KEY);
-      if (saved && Array.isArray(saved.words)) {
-        const stripGre = (t) => (t === "GRE" || t === "gre" ? "" : t);
-        setState({
-          words: saved.words.map((w) => ({ ...w, tag: stripGre(w.tag || "") })),
-          activityDates: saved.activityDates || [],
-          tags: (saved.tags || []).filter((t) => t !== "GRE" && t !== "gre"),
-        });
-      } else {
-        setState(defaultState());
-      }
-      loaded.current = true;
-    })();
+  // tags are derived from whatever words exist — no separate store needed
+  const tags = React.useMemo(() => {
+    const out = [];
+    for (const w of words || []) if (w.tag && !out.includes(w.tag)) out.push(w.tag);
+    return out;
+  }, [words]);
+
+  const refetch = React.useCallback(async () => {
+    try { setWords(await dbFetchWords()); } catch (e) { /* keep prior state */ }
   }, []);
 
-  /* ---- persist on change ---- */
+  /* ---- load shared words from Supabase + subscribe to live changes ---- */
   React.useEffect(() => {
-    if (loaded.current && state) store.set(STORAGE_KEY, state);
-  }, [state]);
+    let alive = true;
+    (async () => {
+      let rows = [];
+      try { rows = await dbFetchWords(); } catch (e) { rows = []; }
+      // First-ever load: seed the shared bank from this device's old local
+      // data if present, otherwise the starter set. Runs once (table empty).
+      if (rows.length === 0) {
+        const saved = await store.get(STORAGE_KEY);
+        const seed = (saved && Array.isArray(saved.words) && saved.words.length) ? saved.words : seedWords();
+        await dbUpsertWords(seed);
+        try { rows = await dbFetchWords(); } catch (e) { rows = seed; }
+      }
+      if (alive) setWords(rows);
+    })();
+
+    const channel = window.SB
+      .channel("words-sync")
+      .on("postgres_changes", { event: "*", schema: "public", table: "words" }, () => { refetch(); })
+      .subscribe();
+
+    return () => { alive = false; window.SB.removeChannel(channel); };
+  }, [refetch]);
+
+  /* ---- persist streak/activity locally (per device) ---- */
+  React.useEffect(() => { saveActivityDates(activityDates); }, [activityDates]);
 
   /* ---- apply tweaks to CSS vars ---- */
   React.useEffect(() => {
@@ -71,78 +87,69 @@ function App() {
     root.style.setProperty("--density-unit", String(DENSITY[t.density] || 1));
   }, [t.accent, t.displayFont, t.density]);
 
-  /* ---- helpers to record activity ---- */
-  const recordActivity = (dates) => {
-    const today = todayKey();
-    return dates.includes(today) ? dates : [...dates, today];
-  };
+  /* ---- record today's activity (local streak) ---- */
+  const recordActivity = React.useCallback(() => {
+    setActivityDates((dates) => {
+      const today = todayKey();
+      return dates.includes(today) ? dates : [...dates, today];
+    });
+  }, []);
+
+  // apply a change to one word locally (optimistic) and persist it to the cloud
+  const updateWordLocal = React.useCallback((id, fn) => {
+    setWords((ws) => {
+      const next = (ws || []).map((w) => w.id === id ? fn(w) : w);
+      const changed = next.find((w) => w.id === id);
+      if (changed) dbUpsertWord(changed);
+      return next;
+    });
+  }, []);
 
   /* ---- mutations ---- */
   const addWord = React.useCallback((word) => {
-    setState((s) => {
-      const tags = word.tag && !s.tags.includes(word.tag) ? [...s.tags, word.tag] : s.tags;
-      return { ...s, words: [word, ...s.words], tags, activityDates: recordActivity(s.activityDates) };
-    });
-  }, []);
+    setWords((ws) => [word, ...(ws || [])]);
+    dbUpsertWord(word);
+    recordActivity();
+  }, [recordActivity]);
 
   const deleteWord = React.useCallback((id) => {
-    setState((s) => {
-      const words = s.words.filter((w) => w.id !== id);
-      const usedTags = new Set(words.map((w) => w.tag).filter(Boolean));
-      return { ...s, words, tags: s.tags.filter((t) => usedTags.has(t)) };
-    });
+    setWords((ws) => (ws || []).filter((w) => w.id !== id));
+    dbDeleteWord(id);
   }, []);
 
   const editWordTag = React.useCallback((id, tag) => {
-    setState((s) => {
-      const words = s.words.map((w) => w.id === id ? { ...w, tag } : w);
-      const usedTags = new Set(words.map((w) => w.tag).filter(Boolean));
-      const tags = tag && !s.tags.includes(tag)
-        ? [...s.tags.filter((t) => usedTags.has(t)), tag]
-        : s.tags.filter((t) => usedTags.has(t));
-      return { ...s, words, tags };
-    });
-  }, []);
+    updateWordLocal(id, (w) => ({ ...w, tag }));
+  }, [updateWordLocal]);
 
   const toggleMaster = React.useCallback((id) => {
-    setState((s) => ({
-      ...s,
-      words: s.words.map((w) => {
-        if (w.id !== id) return w;
-        const mastered = !w.mastered;
-        return {
-          ...w,
-          mastered,
-          reviewLevel: mastered ? SR_INTERVALS.length - 1 : w.reviewLevel,
-          lastReviewedAt: mastered ? Date.now() : w.lastReviewedAt,
-        };
-      }),
-      activityDates: recordActivity(s.activityDates),
-    }));
-  }, []);
+    updateWordLocal(id, (w) => {
+      const mastered = !w.mastered;
+      return {
+        ...w,
+        mastered,
+        reviewLevel: mastered ? SR_INTERVALS.length - 1 : w.reviewLevel,
+        lastReviewedAt: mastered ? Date.now() : w.lastReviewedAt,
+      };
+    });
+    recordActivity();
+  }, [updateWordLocal, recordActivity]);
 
   // advance=true bumps SR level (explicit "Reviewed"); advance=false just resets the due timer (seen in study)
   const markReviewed = React.useCallback((id, advance = true) => {
-    setState((s) => ({
-      ...s,
-      words: s.words.map((w) => {
-        if (w.id !== id) return w;
-        return {
-          ...w,
-          lastReviewedAt: Date.now(),
-          reviewLevel: advance ? Math.min((w.reviewLevel || 0) + 1, SR_INTERVALS.length - 1) : (w.reviewLevel || 0),
-        };
-      }),
-      activityDates: recordActivity(s.activityDates),
+    updateWordLocal(id, (w) => ({
+      ...w,
+      lastReviewedAt: Date.now(),
+      reviewLevel: advance ? Math.min((w.reviewLevel || 0) + 1, SR_INTERVALS.length - 1) : (w.reviewLevel || 0),
     }));
-  }, []);
+    recordActivity();
+  }, [updateWordLocal, recordActivity]);
 
-  if (!state) {
+  if (!words) {
     return <div style={{ display: "grid", placeItems: "center", height: "100%" }}><div className="spinner"></div></div>;
   }
 
-  const streak = computeStreak(state.activityDates);
-  const counts = { total: state.words.length, due: dueWords(state.words).length };
+  const streak = computeStreak(activityDates);
+  const counts = { total: words.length, due: dueWords(words).length };
 
   return (
     <div className="app">
@@ -152,8 +159,8 @@ function App() {
         <div className="main-inner">
           {view === "bank" && (
             <WordBank
-              words={state.words}
-              tags={state.tags}
+              words={words}
+              tags={tags}
               onMaster={toggleMaster}
               onDelete={deleteWord}
               onAdd={addWord}
@@ -164,15 +171,15 @@ function App() {
           )}
           {view === "study" && (
             <StudyMode
-              words={state.words}
-              tags={state.tags}
+              words={words}
+              tags={tags}
               onMaster={toggleMaster}
               onReview={(id) => markReviewed(id, false)}
             />
           )}
           {view === "due" && (
             <DueToday
-              words={state.words}
+              words={words}
               onReview={(id) => markReviewed(id, true)}
               onMaster={toggleMaster}
               goStudy={() => setView("study")}
@@ -180,9 +187,9 @@ function App() {
           )}
           {view === "progress" && (
             <Progress
-              words={state.words}
-              activityDates={state.activityDates}
-              tags={state.tags}
+              words={words}
+              activityDates={activityDates}
+              tags={tags}
               streak={streak}
             />
           )}

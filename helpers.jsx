@@ -296,10 +296,76 @@ function defaultState() {
   };
 }
 
+/* ============================================================
+   Supabase — shared word bank (everyone sees the same words)
+   The word data lives in the cloud; streak/activity stays local.
+   ============================================================ */
+const ACTIVITY_STORAGE = "lexicon-activity";
+
+function getActivityDates() {
+  try { return JSON.parse(localStorage.getItem(ACTIVITY_STORAGE) || "[]"); } catch (e) { return []; }
+}
+function saveActivityDates(dates) {
+  try { localStorage.setItem(ACTIVITY_STORAGE, JSON.stringify(dates)); } catch (e) { /* ignore */ }
+}
+
+/* row (snake_case in DB) <-> word (camelCase in app) */
+function rowToWord(r) {
+  return {
+    id: r.id,
+    word: r.word,
+    tag: r.tag || "",
+    definition: r.definition || "",
+    example: r.example || "",
+    memoryHook: r.memory_hook || "",
+    hookTheme: r.hook_theme || "",
+    mastered: !!r.mastered,
+    reviewLevel: r.review_level || 0,
+    lastReviewedAt: r.last_reviewed_at || null,
+    addedAt: r.added_at || 0,
+  };
+}
+function wordToRow(w) {
+  return {
+    id: w.id,
+    word: w.word,
+    tag: w.tag || "",
+    definition: w.definition || "",
+    example: w.example || "",
+    memory_hook: w.memoryHook || "",
+    hook_theme: w.hookTheme || "",
+    mastered: !!w.mastered,
+    review_level: w.reviewLevel || 0,
+    last_reviewed_at: w.lastReviewedAt || null,
+    added_at: w.addedAt || 0,
+  };
+}
+
+async function dbFetchWords() {
+  const { data, error } = await window.SB.from("words").select("*").order("added_at", { ascending: false });
+  if (error) { console.error("[lexicon] fetch failed:", error); throw error; }
+  return (data || []).map(rowToWord);
+}
+async function dbUpsertWord(word) {
+  const { error } = await window.SB.from("words").upsert(wordToRow(word));
+  if (error) console.error("[lexicon] save failed:", error);
+}
+async function dbUpsertWords(words) {
+  if (!words.length) return;
+  const { error } = await window.SB.from("words").upsert(words.map(wordToRow));
+  if (error) console.error("[lexicon] bulk save failed:", error);
+}
+async function dbDeleteWord(id) {
+  const { error } = await window.SB.from("words").delete().eq("id", id);
+  if (error) console.error("[lexicon] delete failed:", error);
+}
+
 Object.assign(window, {
   store, STORAGE_KEY, defaultState, seedWords,
   todayKey, dayDiff, fmtDate, relDate, DAY_MS,
   SR_INTERVALS, SR_LABELS, intervalDays, isDue, dueWords,
   computeStreak, addedThisWeek,
   tagColor, TAG_PALETTE, uid, enrichWord, getApiKey, saveApiKey, API_KEY_STORAGE,
+  getActivityDates, saveActivityDates,
+  dbFetchWords, dbUpsertWord, dbUpsertWords, dbDeleteWord,
 });
