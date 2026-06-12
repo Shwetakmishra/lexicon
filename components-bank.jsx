@@ -4,6 +4,20 @@
    ============================================================ */
 const PAGE_SIZE = 6;
 
+/* ---- responsive: true when viewport is mobile-width (matches CSS 640px breakpoint) ---- */
+function useIsMobile() {
+  const [isMobile, setIsMobile] = React.useState(
+    () => typeof window !== "undefined" && window.matchMedia("(max-width: 640px)").matches
+  );
+  React.useEffect(() => {
+    const mq = window.matchMedia("(max-width: 640px)");
+    const onChange = (e) => setIsMobile(e.matches);
+    mq.addEventListener("change", onChange);
+    return () => mq.removeEventListener("change", onChange);
+  }, []);
+  return isMobile;
+}
+
 /* ---- single expandable word row ---- */
 function WordRow({ word, open, onToggle, onMaster, onDelete, tags, onEditTag }) {
   const [editingTag, setEditingTag] = React.useState(false);
@@ -311,6 +325,7 @@ function WordBank({ words, tags, onMaster, onDelete, onAdd, onEditTag, openAdd, 
   const [filter, setFilter] = React.useState("all");
   const [page, setPage] = React.useState(1);
   const [openId, setOpenId] = React.useState(null);
+  const isMobile = useIsMobile();
 
   const filtered = React.useMemo(() => {
     let list = words;
@@ -327,7 +342,11 @@ function WordBank({ words, tags, onMaster, onDelete, onAdd, onEditTag, openAdd, 
 
   const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const safePage = Math.min(page, pageCount);
-  const pageItems = filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
+  // Mobile: accumulate items behind a "Load more" button. Desktop: windowed pagination.
+  const pageItems = isMobile
+    ? filtered.slice(0, page * PAGE_SIZE)
+    : filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
+  const hasMore = isMobile && filtered.length > page * PAGE_SIZE;
 
   return (
     <>
@@ -397,23 +416,33 @@ function WordBank({ words, tags, onMaster, onDelete, onAdd, onEditTag, openAdd, 
             ))}
           </div>
 
-          {pageCount > 1 && (
-            <div className="pagination">
-              <span>Page {safePage} of {pageCount}</span>
-              <div className="page-nums">
-                <button className="page-num" disabled={safePage === 1} onClick={() => setPage(safePage - 1)}>
-                  <Icon name="chevron-left" />
-                </button>
-                {Array.from({ length: pageCount }, (_, i) => i + 1).map((p) => (
-                  <button key={p} className={`page-num ${p === safePage ? "active" : ""}`} onClick={() => setPage(p)}>
-                    {p}
-                  </button>
-                ))}
-                <button className="page-num" disabled={safePage === pageCount} onClick={() => setPage(safePage + 1)}>
-                  <Icon name="chevron-right" />
+          {isMobile ? (
+            hasMore && (
+              <div className="load-more">
+                <button className="btn btn-secondary btn-block" onClick={() => setPage(page + 1)}>
+                  Load more <span className="load-more-count">({filtered.length - pageItems.length} left)</span>
                 </button>
               </div>
-            </div>
+            )
+          ) : (
+            pageCount > 1 && (
+              <div className="pagination">
+                <span>Page {safePage} of {pageCount}</span>
+                <div className="page-nums">
+                  <button className="page-num" disabled={safePage === 1} onClick={() => setPage(safePage - 1)}>
+                    <Icon name="chevron-left" />
+                  </button>
+                  {Array.from({ length: pageCount }, (_, i) => i + 1).map((p) => (
+                    <button key={p} className={`page-num ${p === safePage ? "active" : ""}`} onClick={() => setPage(p)}>
+                      {p}
+                    </button>
+                  ))}
+                  <button className="page-num" disabled={safePage === pageCount} onClick={() => setPage(safePage + 1)}>
+                    <Icon name="chevron-right" />
+                  </button>
+                </div>
+              </div>
+            )
           )}
         </>
       )}
@@ -429,4 +458,4 @@ function WordBank({ words, tags, onMaster, onDelete, onAdd, onEditTag, openAdd, 
   );
 }
 
-Object.assign(window, { WordBank, WordRow, AddWordModal, PAGE_SIZE });
+Object.assign(window, { WordBank, WordRow, AddWordModal, PAGE_SIZE, useIsMobile });

@@ -468,6 +468,9 @@ input, textarea, select { font-family: inherit; font-size: inherit; color: inher
 .page-num.active { background: var(--color-accent); color: #fff; }
 .page-num:disabled { opacity: 0.4; cursor: not-allowed; }
 
+.load-more { margin-top: 16px; }
+.load-more-count { opacity: 0.6; font-weight: 500; }
+
 /* ============================================================
    Empty state
    ============================================================ */
