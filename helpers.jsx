@@ -134,15 +134,43 @@ function saveApiKey(key) {
   } catch (e) { /* ignore */ }
 }
 
+/* ---- recent hook themes: keep the last few so we can ask for variety ---- */
+const RECENT_THEMES_STORAGE = "lexicon-recent-themes";
+function getRecentThemes() {
+  try { return JSON.parse(localStorage.getItem(RECENT_THEMES_STORAGE) || "[]"); } catch (e) { return []; }
+}
+function pushRecentTheme(theme) {
+  if (!theme) return;
+  try {
+    const next = [theme.toLowerCase().trim(), ...getRecentThemes().filter((t) => t !== theme.toLowerCase().trim())].slice(0, 4);
+    localStorage.setItem(RECENT_THEMES_STORAGE, JSON.stringify(next));
+  } catch (e) { /* ignore */ }
+}
+
 async function enrichWord(word) {
   const apiKey = getApiKey();
   if (!apiKey) throw new Error("NO_API_KEY");
 
   const w = word.trim();
+  const recentThemes = getRecentThemes();
   const prompt = `You are a vocabulary tutor helping Indian students. For the word "${w}", return a JSON object with exactly these keys:
 - "definition": a clear, concise definition (one sentence, no more than 22 words). Do not restate the word at the start.
 - "example": one natural example sentence that uses the word "${w}" in context.
-- "memoryHook": a short, vivid mnemonic that breaks the word "${w}" into its sounds or syllables and builds a memorable image from them, tied to the word's meaning. For example, for "castigate": "Think of a CASTLE GATE slamming shut in someone's face — being castigated is being shut out and scolded by someone in power." Always anchor the hook in how the word sounds or is spelled. Do NOT use Indian cultural references unless the word's sound genuinely evokes one. One or two sentences.
+- "memoryHook": a mnemonic that helps the reader permanently remember "${w}". Build it in this order:
+  1. SOUND FIRST: Break "${w}" into syllables or sound-alike chunks (e.g., castigate → CASTLE + GATE, gregarious → GREG + AREA). The chunks must be obvious enough that hearing the image brings the word back.
+  2. IMAGE SECOND: Turn those chunks into ONE concrete, visual scene — something you can see, hear, or taste. Absurd, exaggerated, or funny images stick better than sensible ones.
+  3. MEANING LAST: The scene must demonstrate the word's meaning, not just rhyme with it. End by tying the image back to the definition in a few words.
+
+  Example: "castigate" → "Picture a CASTLE GATE slamming shut in your face while the king yells at you from the wall — to castigate is to harshly scold and shut someone down."
+
+  Theme palette (pick whatever fits the SOUND best): food (biryani, espresso, street chaat), travel (Jaipur, Tokyo metro, airport chaos), music and art (a sitar riff, a Van Gogh sky), movies, cricket and sports, animals, everyday objects (a stuck zipper, a leaking pen). Indian references are great when the sound naturally calls for one — never force-fit.
+  ${recentThemes.length ? `Recent hooks used these themes: ${recentThemes.join(", ")}. Pick a DIFFERENT theme this time.` : ""}
+
+  Rules:
+  - 1–2 sentences max. CAPITALIZE the sound chunks.
+  - No abstract framing ("imagine feeling sad") — always a physical scene.
+  - Never reuse the word's own definition as the image (circular hooks don't work).
+- "hookTheme": one word naming the theme you used for the memoryHook (e.g., "food", "travel", "music").
 
 Respond with ONLY the raw JSON object, no markdown, no code fences, no commentary.`;
 
@@ -177,10 +205,13 @@ Respond with ONLY the raw JSON object, no markdown, no code fences, no commentar
   if (first !== -1 && last !== -1) txt = txt.slice(first, last + 1);
 
   const parsed = JSON.parse(txt);
+  const hookTheme = (parsed.hookTheme || "").trim();
+  pushRecentTheme(hookTheme);
   return {
     definition: (parsed.definition || "").trim(),
     example: (parsed.example || "").trim(),
     memoryHook: (parsed.memoryHook || parsed.hook || "").trim(),
+    hookTheme,
   };
 }
 
