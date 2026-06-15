@@ -333,10 +333,7 @@ function WordBank({ words, tags, onMaster, onDelete, onAdd, onEditTag, openAdd, 
     if (filter !== "all") list = list.filter((w) => w.tag === filter);
     const q = query.trim().toLowerCase();
     if (q) list = list.filter((w) => w.word.toLowerCase().includes(q) || (w.definition || "").toLowerCase().includes(q));
-    if (shuffleOrder) {
-      const pos = new Map(shuffleOrder.map((id, i) => [id, i]));
-      return [...list].sort((a, b) => (pos.has(a.id) ? pos.get(a.id) : Infinity) - (pos.has(b.id) ? pos.get(b.id) : Infinity));
-    }
+    if (shuffleOrder) return applyOrder(list, shuffleOrder);
     return [...list].sort((a, b) => b.addedAt - a.addedAt);
   }, [words, filter, query, shuffleOrder]);
 

@@ -129,6 +129,14 @@ function shuffleIds(ids) {
   return a;
 }
 
+// Reorder a list of {id} objects by an id order (from shuffleIds). A null order
+// returns the list unchanged; ids absent from the order sort to the end.
+function applyOrder(list, orderIds) {
+  if (!orderIds) return list;
+  const pos = new Map(orderIds.map((id, i) => [id, i]));
+  return [...list].sort((a, b) => (pos.has(a.id) ? pos.get(a.id) : Infinity) - (pos.has(b.id) ? pos.get(b.id) : Infinity));
+}
+
 /* ============================================================
    Enrichment — direct Anthropic API call (key stored in localStorage)
    ============================================================ */
@@ -375,7 +383,7 @@ Object.assign(window, {
   todayKey, dayDiff, fmtDate, relDate, DAY_MS,
   SR_INTERVALS, SR_LABELS, intervalDays, isDue, dueWords,
   computeStreak, addedThisWeek,
-  tagColor, TAG_PALETTE, uid, shuffleIds, enrichWord, getApiKey, saveApiKey, API_KEY_STORAGE,
+  tagColor, TAG_PALETTE, uid, shuffleIds, applyOrder, enrichWord, getApiKey, saveApiKey, API_KEY_STORAGE,
   getActivityDates, saveActivityDates,
   dbFetchWords, dbUpsertWord, dbUpsertWords, dbDeleteWord,
 });

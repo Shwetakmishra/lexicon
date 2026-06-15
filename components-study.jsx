@@ -11,11 +11,7 @@ function StudyMode({ words, tags, onMaster, onReview }) {
 
   const deck = React.useMemo(() => {
     let list = filter === "all" ? words : words.filter((w) => w.tag === filter);
-    if (shuffleOrder) {
-      const pos = new Map(shuffleOrder.map((id, i) => [id, i]));
-      return [...list].sort((a, b) => (pos.has(a.id) ? pos.get(a.id) : Infinity) - (pos.has(b.id) ? pos.get(b.id) : Infinity));
-    }
-    return list;
+    return applyOrder(list, shuffleOrder);
   }, [words, filter, shuffleOrder]);
 
   const onShuffle = React.useCallback(() => {
