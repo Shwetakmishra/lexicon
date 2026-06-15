@@ -168,7 +168,9 @@ function StudyMode({ words, tags, onMaster, onReview }) {
             <button className="study-nav-btn" disabled={index === deck.length - 1} onClick={() => go(1)}>
               <Icon name="arrow-right" />
             </button>
-            <ShuffleButton active={!!shuffleOrder} onToggle={onShuffle} onReset={onResetOrder} />
+            {deck.length > 1 && (
+              <ShuffleButton active={!!shuffleOrder} onToggle={onShuffle} onReset={onResetOrder} />
+            )}
           </div>
 
           <button
