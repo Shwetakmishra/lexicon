@@ -7,11 +7,25 @@ function StudyMode({ words, tags, onMaster, onReview }) {
   const [filter, setFilter] = React.useState("all");
   const [index, setIndex] = React.useState(0);
   const [flipped, setFlipped] = React.useState(false);
+  const [shuffleOrder, setShuffleOrder] = React.useState(null); // null = bank order; else array of ids
 
   const deck = React.useMemo(() => {
     let list = filter === "all" ? words : words.filter((w) => w.tag === filter);
+    if (shuffleOrder) {
+      const pos = new Map(shuffleOrder.map((id, i) => [id, i]));
+      return [...list].sort((a, b) => (pos.has(a.id) ? pos.get(a.id) : Infinity) - (pos.has(b.id) ? pos.get(b.id) : Infinity));
+    }
     return list;
-  }, [words, filter]);
+  }, [words, filter, shuffleOrder]);
+
+  const onShuffle = React.useCallback(() => {
+    setShuffleOrder(shuffleIds(words.map((w) => w.id)));
+    setIndex(0); setFlipped(false);
+  }, [words]);
+  const onResetOrder = React.useCallback(() => {
+    setShuffleOrder(null);
+    setIndex(0); setFlipped(false);
+  }, []);
 
   // keep index valid when deck changes
   React.useEffect(() => { setIndex(0); setFlipped(false); }, [filter]);
@@ -154,6 +168,7 @@ function StudyMode({ words, tags, onMaster, onReview }) {
             <button className="study-nav-btn" disabled={index === deck.length - 1} onClick={() => go(1)}>
               <Icon name="arrow-right" />
             </button>
+            <ShuffleButton active={!!shuffleOrder} onToggle={onShuffle} onReset={onResetOrder} />
           </div>
 
           <button
