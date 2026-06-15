@@ -119,6 +119,16 @@ function uid() {
   return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 }
 
+// Fisher-Yates shuffle — returns a NEW array of the given ids in random order.
+function shuffleIds(ids) {
+  const a = [...ids];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
 /* ============================================================
    Enrichment — direct Anthropic API call (key stored in localStorage)
    ============================================================ */
@@ -365,7 +375,7 @@ Object.assign(window, {
   todayKey, dayDiff, fmtDate, relDate, DAY_MS,
   SR_INTERVALS, SR_LABELS, intervalDays, isDue, dueWords,
   computeStreak, addedThisWeek,
-  tagColor, TAG_PALETTE, uid, enrichWord, getApiKey, saveApiKey, API_KEY_STORAGE,
+  tagColor, TAG_PALETTE, uid, shuffleIds, enrichWord, getApiKey, saveApiKey, API_KEY_STORAGE,
   getActivityDates, saveActivityDates,
   dbFetchWords, dbUpsertWord, dbUpsertWords, dbDeleteWord,
 });
