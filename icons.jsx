@@ -32,6 +32,7 @@ const ICON_PATHS = {
   "search-off": '<path stroke="none" d="M0 0h24v24H0z" fill="none"/> <path d="M5.039 5.062a7 7 0 0 0 9.91 9.89m1.584 -2.434a7 7 0 0 0 -9.038 -9.057" /> <path d="M3 3l18 18" />',
   "filter-off": '<path stroke="none" d="M0 0h24v24H0z" fill="none"/> <path d="M8 4h12v2.172a2 2 0 0 1 -.586 1.414l-3.914 3.914m-.5 3.5v4l-6 2v-8.5l-4.48 -4.928a2 2 0 0 1 -.52 -1.345v-2.227" /> <path d="M3 3l18 18" />',
   "book": '<path stroke="none" d="M0 0h24v24H0z" fill="none"/> <path d="M3 19a9 9 0 0 1 9 0a9 9 0 0 1 9 0" /> <path d="M3 6a9 9 0 0 1 9 0a9 9 0 0 1 9 0" /> <path d="M3 6l0 13" /> <path d="M12 6l0 13" /> <path d="M21 6l0 13" />',
+  "shuffle": '<path stroke="none" d="M0 0h24v24H0z" fill="none"/> <path d="M18 4l3 3l-3 3" /> <path d="M18 20l3 -3l-3 -3" /> <path d="M3 7h3a5 5 0 0 1 5 5a5 5 0 0 0 5 5h4" /> <path d="M21 7h-4a4.978 4.978 0 0 0 -3 1m-4 8a4.984 4.984 0 0 1 -3 1h-4" />',
 };
 
 function Icon({ name, className = "", style }) {

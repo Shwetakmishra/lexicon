@@ -7,11 +7,21 @@ function StudyMode({ words, tags, onMaster, onReview }) {
   const [filter, setFilter] = React.useState("all");
   const [index, setIndex] = React.useState(0);
   const [flipped, setFlipped] = React.useState(false);
+  const [shuffleOrder, setShuffleOrder] = React.useState(null); // null = bank order; else array of ids
 
   const deck = React.useMemo(() => {
     let list = filter === "all" ? words : words.filter((w) => w.tag === filter);
-    return list;
-  }, [words, filter]);
+    return applyOrder(list, shuffleOrder);
+  }, [words, filter, shuffleOrder]);
+
+  const onShuffle = React.useCallback(() => {
+    setShuffleOrder(shuffleIds(words.map((w) => w.id)));
+    setIndex(0); setFlipped(false);
+  }, [words]);
+  const onResetOrder = React.useCallback(() => {
+    setShuffleOrder(null);
+    setIndex(0); setFlipped(false);
+  }, []);
 
   // keep index valid when deck changes
   React.useEffect(() => { setIndex(0); setFlipped(false); }, [filter]);
@@ -154,6 +164,9 @@ function StudyMode({ words, tags, onMaster, onReview }) {
             <button className="study-nav-btn" disabled={index === deck.length - 1} onClick={() => go(1)}>
               <Icon name="arrow-right" />
             </button>
+            {deck.length > 1 && (
+              <ShuffleButton active={!!shuffleOrder} onToggle={onShuffle} onReset={onResetOrder} />
+            )}
           </div>
 
           <button

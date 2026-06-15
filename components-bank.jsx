@@ -325,6 +325,7 @@ function WordBank({ words, tags, onMaster, onDelete, onAdd, onEditTag, openAdd, 
   const [filter, setFilter] = React.useState("all");
   const [page, setPage] = React.useState(1);
   const [openId, setOpenId] = React.useState(null);
+  const [shuffleOrder, setShuffleOrder] = React.useState(null); // null = default order; else array of ids
   const isMobile = useIsMobile();
 
   const filtered = React.useMemo(() => {
@@ -332,8 +333,15 @@ function WordBank({ words, tags, onMaster, onDelete, onAdd, onEditTag, openAdd, 
     if (filter !== "all") list = list.filter((w) => w.tag === filter);
     const q = query.trim().toLowerCase();
     if (q) list = list.filter((w) => w.word.toLowerCase().includes(q) || (w.definition || "").toLowerCase().includes(q));
+    if (shuffleOrder) return applyOrder(list, shuffleOrder);
     return [...list].sort((a, b) => b.addedAt - a.addedAt);
-  }, [words, filter, query]);
+  }, [words, filter, query, shuffleOrder]);
+
+  const onShuffle = React.useCallback(() => {
+    setShuffleOrder(shuffleIds(words.map((w) => w.id)));
+    setPage(1);
+  }, [words]);
+  const onResetOrder = React.useCallback(() => { setShuffleOrder(null); setPage(1); }, []);
 
   // reset to page 1 when filters change
   React.useEffect(() => { setPage(1); }, [query, filter]);
@@ -369,6 +377,9 @@ function WordBank({ words, tags, onMaster, onDelete, onAdd, onEditTag, openAdd, 
             onChange={(e) => setQuery(e.target.value)}
           />
         </div>
+        {words.length > 1 && (
+          <ShuffleButton active={!!shuffleOrder} onToggle={onShuffle} onReset={onResetOrder} />
+        )}
       </div>
 
       {tags.length > 0 && (

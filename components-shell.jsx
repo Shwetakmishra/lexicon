@@ -18,6 +18,25 @@ function Tag({ tag, onClick, style }) {
   );
 }
 
+/* ---- Shuffle toggle button (shared by Bank + Study) ----
+   active=false → "Shuffle" (click = onToggle to shuffle)
+   active=true  → "Shuffled ✕" (click body = onToggle to reshuffle, ✕ = onReset) */
+function ShuffleButton({ active, onToggle, onReset }) {
+  return (
+    <div className={`shuffle-btn ${active ? "active" : ""}`}>
+      <button className="shuffle-main" onClick={onToggle} title={active ? "Reshuffle" : "Shuffle order"}>
+        <Icon name="shuffle" />
+        {active ? "Shuffled" : "Shuffle"}
+      </button>
+      {active && (
+        <button className="shuffle-reset" onClick={onReset} title="Reset to default order">
+          <Icon name="x" />
+        </button>
+      )}
+    </div>
+  );
+}
+
 /* ---- Sidebar nav ---- */
 const NAV = [
   { id: "bank", label: "Word Bank", icon: "books" },
@@ -108,4 +127,4 @@ function BottomNav({ view, setView, counts }) {
   );
 }
 
-Object.assign(window, { Tag, Sidebar, BottomNav, EmptyState, PageHead, NAV });
+Object.assign(window, { Tag, ShuffleButton, Sidebar, BottomNav, EmptyState, PageHead, NAV });
