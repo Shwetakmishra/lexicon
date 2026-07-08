@@ -1,21 +1,16 @@
+
 /* ============================================================
    components-bank.jsx — Word Bank: search, filter, paginated
    expandable list, add-word modal with Claude enrichment.
    ============================================================ */
 const PAGE_SIZE = 6;
 
-/* ---- responsive: true when viewport is mobile-width (matches CSS 640px breakpoint) ---- */
-function useIsMobile() {
-  const [isMobile, setIsMobile] = React.useState(
-    () => typeof window !== "undefined" && window.matchMedia("(max-width: 640px)").matches
-  );
-  React.useEffect(() => {
-    const mq = window.matchMedia("(max-width: 640px)");
-    const onChange = (e) => setIsMobile(e.matches);
-    mq.addEventListener("change", onChange);
-    return () => mq.removeEventListener("change", onChange);
-  }, []);
-  return isMobile;
+/* Build a windowed page list with ellipses, e.g. [1,2,3,4,5,"…",39]. */
+function pageList(current, total) {
+  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
+  if (current <= 4) return [1, 2, 3, 4, 5, "…", total];
+  if (current >= total - 3) return [1, "…", total - 4, total - 3, total - 2, total - 1, total];
+  return [1, "…", current - 1, current, current + 1, "…", total];
 }
 
 /* ---- single expandable word row ---- */
@@ -325,23 +320,14 @@ function WordBank({ words, tags, onMaster, onDelete, onAdd, onEditTag, openAdd, 
   const [filter, setFilter] = React.useState("all");
   const [page, setPage] = React.useState(1);
   const [openId, setOpenId] = React.useState(null);
-  const [shuffleOrder, setShuffleOrder] = React.useState(null); // null = default order; else array of ids
-  const isMobile = useIsMobile();
 
   const filtered = React.useMemo(() => {
     let list = words;
     if (filter !== "all") list = list.filter((w) => w.tag === filter);
     const q = query.trim().toLowerCase();
     if (q) list = list.filter((w) => w.word.toLowerCase().includes(q) || (w.definition || "").toLowerCase().includes(q));
-    if (shuffleOrder) return applyOrder(list, shuffleOrder);
     return [...list].sort((a, b) => b.addedAt - a.addedAt);
-  }, [words, filter, query, shuffleOrder]);
-
-  const onShuffle = React.useCallback(() => {
-    setShuffleOrder(shuffleIds(words.map((w) => w.id)));
-    setPage(1);
-  }, [words]);
-  const onResetOrder = React.useCallback(() => { setShuffleOrder(null); setPage(1); }, []);
+  }, [words, filter, query]);
 
   // reset to page 1 when filters change
   React.useEffect(() => { setPage(1); }, [query, filter]);
@@ -350,11 +336,7 @@ function WordBank({ words, tags, onMaster, onDelete, onAdd, onEditTag, openAdd, 
 
   const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const safePage = Math.min(page, pageCount);
-  // Mobile: accumulate items behind a "Load more" button. Desktop: windowed pagination.
-  const pageItems = isMobile
-    ? filtered.slice(0, page * PAGE_SIZE)
-    : filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
-  const hasMore = isMobile && filtered.length > page * PAGE_SIZE;
+  const pageItems = filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
 
   return (
     <>
@@ -377,9 +359,6 @@ function WordBank({ words, tags, onMaster, onDelete, onAdd, onEditTag, openAdd, 
             onChange={(e) => setQuery(e.target.value)}
           />
         </div>
-        {words.length > 1 && (
-          <ShuffleButton active={!!shuffleOrder} onToggle={onShuffle} onReset={onResetOrder} />
-        )}
       </div>
 
       {tags.length > 0 && (
@@ -427,34 +406,30 @@ function WordBank({ words, tags, onMaster, onDelete, onAdd, onEditTag, openAdd, 
             ))}
           </div>
 
-          {isMobile ? (
-            hasMore && (
-              <div className="load-more">
-                <button className="btn btn-secondary btn-block" onClick={() => setPage(page + 1)}>
-                  Load more <span className="load-more-count">({filtered.length - pageItems.length} left)</span>
+          <div className="pagination">
+            {pageCount > 1 && (
+              <div className="page-nums">
+                <button className="page-arrow" disabled={safePage === 1} onClick={() => setPage(safePage - 1)} aria-label="Previous page">
+                  <Icon name="chevron-left" />
                 </button>
-              </div>
-            )
-          ) : (
-            pageCount > 1 && (
-              <div className="pagination">
-                <span>Page {safePage} of {pageCount}</span>
-                <div className="page-nums">
-                  <button className="page-num" disabled={safePage === 1} onClick={() => setPage(safePage - 1)}>
-                    <Icon name="chevron-left" />
-                  </button>
-                  {Array.from({ length: pageCount }, (_, i) => i + 1).map((p) => (
+                {pageList(safePage, pageCount).map((p, i) =>
+                  p === "…" ? (
+                    <span key={`ellipsis-${i}`} className="page-ellipsis">…</span>
+                  ) : (
                     <button key={p} className={`page-num ${p === safePage ? "active" : ""}`} onClick={() => setPage(p)}>
                       {p}
                     </button>
-                  ))}
-                  <button className="page-num" disabled={safePage === pageCount} onClick={() => setPage(safePage + 1)}>
-                    <Icon name="chevron-right" />
-                  </button>
-                </div>
+                  )
+                )}
+                <button className="page-arrow" disabled={safePage === pageCount} onClick={() => setPage(safePage + 1)} aria-label="Next page">
+                  <Icon name="chevron-right" />
+                </button>
               </div>
-            )
-          )}
+            )}
+            <span className="page-showing">
+              Showing {(safePage - 1) * PAGE_SIZE + 1}-{Math.min(safePage * PAGE_SIZE, filtered.length)} of {filtered.length} {filtered.length === 1 ? "Record" : "Records"}
+            </span>
+          </div>
         </>
       )}
 
@@ -469,4 +444,4 @@ function WordBank({ words, tags, onMaster, onDelete, onAdd, onEditTag, openAdd, 
   );
 }
 
-Object.assign(window, { WordBank, WordRow, AddWordModal, PAGE_SIZE, useIsMobile });
+Object.assign(window, { WordBank, WordRow, AddWordModal, PAGE_SIZE });
