@@ -282,6 +282,8 @@ input, textarea, select { font-family: inherit; font-size: inherit; color: inher
   border-radius: var(--radius-pill);
   line-height: 1.6;
   white-space: nowrap;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 .tag-dot { width: 7px; height: 7px; border-radius: 50%; }
 
@@ -450,23 +452,47 @@ input, textarea, select { font-family: inherit; font-size: inherit; color: inher
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 12px;
   margin-top: 18px;
-  font-size: 13.5px;
+  font-size: 14px;
   color: var(--color-text-secondary);
 }
-.page-nums { display: flex; gap: 6px; }
+.page-nums { display: flex; align-items: center; gap: 8px; }
 .page-num {
-  min-width: 34px; height: 34px;
+  min-width: 40px; height: 40px;
+  padding: 0 8px;
   border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
   display: grid; place-items: center;
   font-weight: 600;
-  font-size: 13.5px;
-  color: var(--color-text-secondary);
-  transition: background .12s;
+  font-size: 14px;
+  color: var(--color-text-primary);
+  transition: background .12s, border-color .12s, color .12s;
 }
 .page-num:hover { background: var(--color-surface-sunken); }
-.page-num.active { background: var(--color-accent); color: #fff; }
-.page-num:disabled { opacity: 0.4; cursor: not-allowed; }
+.page-num.active {
+  border-color: var(--color-accent);
+  background: var(--color-accent-soft);
+  color: var(--color-accent);
+}
+.page-arrow {
+  min-width: 40px; height: 40px;
+  display: grid; place-items: center;
+  border-radius: var(--radius-sm);
+  color: var(--color-text-secondary);
+  transition: background .12s, color .12s;
+}
+.page-arrow:hover:not(:disabled) { background: var(--color-surface-sunken); color: var(--color-text-primary); }
+.page-arrow:disabled { opacity: 0.35; cursor: not-allowed; }
+.page-ellipsis {
+  min-width: 24px;
+  text-align: center;
+  color: var(--color-text-tertiary);
+  font-weight: 600;
+  letter-spacing: 1px;
+}
+.page-showing { color: var(--color-text-secondary); white-space: nowrap; }
 
 .load-more { margin-top: 16px; }
 .load-more-count { opacity: 0.6; font-weight: 500; }
