@@ -1021,23 +1021,24 @@ svg.ti { width: 1em; height: 1em; vertical-align: -0.14em; flex: none; }
   .toolbar { margin-bottom: 12px; }
 
   .filter-pills {
-    overflow-x: auto;
-    flex-wrap: nowrap;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
-    padding-bottom: 4px;
+    flex-wrap: wrap;
+    row-gap: 8px;
   }
-  .filter-pills::-webkit-scrollbar { display: none; }
 
   .word-gloss { display: none; }
   .word-row-head { padding: 14px 16px; }
 
   .pagination {
     flex-direction: column;
-    align-items: flex-start;
+    align-items: center;
     gap: 10px;
   }
-  .page-showing { white-space: normal; }
+  .page-nums {
+    flex-wrap: wrap;
+    justify-content: center;
+    row-gap: 8px;
+  }
+  .page-showing { white-space: normal; text-align: center; }
 
   .detail-foot {
     flex-wrap: wrap;
