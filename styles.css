@@ -1032,6 +1032,13 @@ svg.ti { width: 1em; height: 1em; vertical-align: -0.14em; flex: none; }
   .word-gloss { display: none; }
   .word-row-head { padding: 14px 16px; }
 
+  .pagination {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  .page-showing { white-space: normal; }
+
   .detail-foot {
     flex-wrap: wrap;
     gap: 10px;
