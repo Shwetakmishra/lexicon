@@ -14,14 +14,12 @@ function pageList(current, total) {
 }
 
 /* ---- single expandable word row ---- */
-function WordRow({ word, open, onToggle, onMaster, onDelete, tags, onEditTag }) {
+function WordRow({ word, open, onToggle, onMaster, onDelete, onEditTag }) {
   const [editingTag, setEditingTag] = React.useState(false);
-  const [newTagVal, setNewTagVal] = React.useState("");
 
   function pickTag(t) {
     onEditTag(word.id, t);
     setEditingTag(false);
-    setNewTagVal("");
   }
 
   return (
@@ -71,7 +69,7 @@ function WordRow({ word, open, onToggle, onMaster, onDelete, tags, onEditTag }) 
                 {editingTag ? (
                   <div className="tag-edit-inline">
                     <div className="tag-picker">
-                      {(tags || []).filter(Boolean).map((t) => (
+                      {SHELF_TAGS.map((t) => (
                         <button key={t} className={`tag-pick ${word.tag === t ? "active" : ""}`}
                           style={word.tag === t ? { background: tagColor(t).bg, color: tagColor(t).fg } : null}
                           onClick={() => pickTag(t)}>
@@ -79,23 +77,16 @@ function WordRow({ word, open, onToggle, onMaster, onDelete, tags, onEditTag }) 
                         </button>
                       ))}
                       {word.tag && (
-                        <button className="tag-pick" onClick={() => pickTag("")}>Clear</button>
+                        <button className="tag-pick" onClick={() => pickTag("")}>Back to All</button>
                       )}
                       <button className="tag-pick add-new" onClick={() => setEditingTag(false)}>
                         <Icon name="x" style={{ fontSize: 12, marginRight: 3 }} />Cancel
                       </button>
                     </div>
-                    <input
-                      placeholder="Or type a new tag and press Enter…"
-                      value={newTagVal}
-                      onChange={(e) => setNewTagVal(e.target.value)}
-                      onKeyDown={(e) => { if (e.key === "Enter" && newTagVal.trim()) pickTag(newTagVal.trim()); }}
-                      autoFocus
-                    />
                   </div>
                 ) : (
                   <button className="btn btn-ghost" onClick={() => setEditingTag(true)}>
-                    <Icon name="tag" />{word.tag ? word.tag : "Add tag"}
+                    <Icon name="tag" />{word.tag ? word.tag : "Mark done / archive"}
                   </button>
                 )}
                 <button className="btn btn-ghost" onClick={() => onDelete(word.id)}>
@@ -111,11 +102,8 @@ function WordRow({ word, open, onToggle, onMaster, onDelete, tags, onEditTag }) 
 }
 
 /* ---- Add-word modal ---- */
-function AddWordModal({ tags, onClose, onAdd }) {
+function AddWordModal({ onClose, onAdd }) {
   const [word, setWord] = React.useState("");
-  const [tag, setTag] = React.useState(tags[0] || "");
-  const [newTag, setNewTag] = React.useState("");
-  const [showNewTag, setShowNewTag] = React.useState(false);
   const [status, setStatus] = React.useState("idle"); // idle | loading | ready | error
   const [enriched, setEnriched] = React.useState(null);
   const [error, setError] = React.useState("");
@@ -134,8 +122,6 @@ function AddWordModal({ tags, onClose, onAdd }) {
     setStatus("idle");
     setError("");
   }
-
-  const effectiveTag = showNewTag ? newTag.trim() : tag;
 
   async function handleEnrich() {
     const w = word.trim();
@@ -162,7 +148,7 @@ function AddWordModal({ tags, onClose, onAdd }) {
     onAdd({
       id: uid(),
       word: w,
-      tag: effectiveTag || "",
+      tag: "", // new words always start in All
       definition: enriched?.definition || "",
       example: enriched?.example || "",
       memoryHook: enriched?.memoryHook || "",
@@ -193,38 +179,6 @@ function AddWordModal({ tags, onClose, onAdd }) {
               onChange={(e) => { setWord(e.target.value); setStatus("idle"); setEnriched(null); }}
               onKeyDown={(e) => { if (e.key === "Enter" && status !== "loading") handleEnrich(); }}
             />
-          </div>
-
-          <div className="field">
-            <label>Category</label>
-            <div className="tag-picker">
-              {tags.map((t) => (
-                <button
-                  key={t}
-                  className={`tag-pick ${!showNewTag && tag === t ? "active" : ""}`}
-                  style={!showNewTag && tag === t ? { background: tagColor(t).bg, color: tagColor(t).fg } : null}
-                  onClick={() => { setTag(t); setShowNewTag(false); }}
-                >
-                  {t}
-                </button>
-              ))}
-              <button
-                className={`tag-pick add-new ${showNewTag ? "active" : ""}`}
-                style={showNewTag ? { background: "var(--color-accent-soft)", color: "var(--color-accent)", borderStyle: "solid" } : null}
-                onClick={() => setShowNewTag(true)}
-              >
-                <Icon name="plus" style={{ fontSize: 13, marginRight: 4 }} />New
-              </button>
-            </div>
-            {showNewTag && (
-              <input
-                style={{ marginTop: 8 }}
-                value={newTag}
-                placeholder="New category name"
-                onChange={(e) => setNewTag(e.target.value)}
-                autoFocus
-              />
-            )}
           </div>
 
           {!savedKey && (
@@ -315,15 +269,15 @@ function AddWordModal({ tags, onClose, onAdd }) {
 }
 
 /* ---- Word Bank view ---- */
-function WordBank({ words, tags, onMaster, onDelete, onAdd, onEditTag, openAdd, setOpenAdd }) {
+function WordBank({ words, onMaster, onDelete, onAdd, onEditTag, openAdd, setOpenAdd }) {
   const [query, setQuery] = React.useState("");
   const [filter, setFilter] = React.useState("all");
   const [page, setPage] = React.useState(1);
   const [openId, setOpenId] = React.useState(null);
 
   const filtered = React.useMemo(() => {
-    // "All" means active words; archived ones only show under the Archive pill
-    let list = filter === "all" ? words.filter((w) => !isArchived(w)) : words.filter((w) => w.tag === filter);
+    // "All" means active (untagged) words; Done / Archive only show under their own pill
+    let list = filter === "all" ? words.filter((w) => !isShelved(w)) : words.filter((w) => w.tag === filter);
     const q = query.trim().toLowerCase();
     if (q) list = list.filter((w) => w.word.toLowerCase().includes(q) || (w.definition || "").toLowerCase().includes(q));
     return [...list].sort((a, b) => b.addedAt - a.addedAt);
@@ -331,12 +285,9 @@ function WordBank({ words, tags, onMaster, onDelete, onAdd, onEditTag, openAdd, 
 
   // reset to page 1 when filters change
   React.useEffect(() => { setPage(1); }, [query, filter]);
-  // reset filter if its tag is removed
-  React.useEffect(() => { if (filter !== "all" && !tags.includes(filter)) setFilter("all"); }, [tags]);
 
-  const activeCount = words.filter((w) => !isArchived(w)).length;
-  const archivedCount = words.length - activeCount;
-  const activeTags = tags.filter((t) => t && t !== ARCHIVE_TAG);
+  const activeCount = words.filter((w) => !isShelved(w)).length;
+  const shelfCount = (t) => words.filter((w) => w.tag === t).length;
 
   const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const safePage = Math.min(page, pageCount);
@@ -346,7 +297,7 @@ function WordBank({ words, tags, onMaster, onDelete, onAdd, onEditTag, openAdd, 
     <>
       <PageHead
         title="Word Bank"
-        subtitle={`${activeCount} word${activeCount === 1 ? "" : "s"} collected${archivedCount ? ` · ${archivedCount} archived` : ""}${query || filter !== "all" ? ` · ${filtered.length} matching` : ""}`}
+        subtitle={`${activeCount} word${activeCount === 1 ? "" : "s"} collected${shelfCount(DONE_TAG) ? ` · ${shelfCount(DONE_TAG)} done` : ""}${query || filter !== "all" ? ` · ${filtered.length} matching` : ""}`}
         action={
           <button className="btn btn-primary" onClick={() => setOpenAdd(true)}>
             <Icon name="plus" />Add word
@@ -365,18 +316,16 @@ function WordBank({ words, tags, onMaster, onDelete, onAdd, onEditTag, openAdd, 
         </div>
       </div>
 
-      {tags.length > 0 && (
-        <div className="filter-pills" style={{ marginBottom: "calc(18px * var(--density-unit))" }}>
-          <button className={`filter-pill ${filter === "all" ? "active" : ""}`} onClick={() => setFilter("all")}>
-            All
+      <div className="filter-pills" style={{ marginBottom: "calc(18px * var(--density-unit))" }}>
+        <button className={`filter-pill ${filter === "all" ? "active" : ""}`} onClick={() => setFilter("all")}>
+          All
+        </button>
+        {SHELF_TAGS.map((t) => (
+          <button key={t} className={`filter-pill ${filter === t ? "active" : ""}`} onClick={() => setFilter(filter === t ? "all" : t)}>
+            {t} ({shelfCount(t)})
           </button>
-          {[...activeTags, ...(archivedCount ? [ARCHIVE_TAG] : [])].map((t) => (
-            <button key={t} className={`filter-pill ${filter === t ? "active" : ""}`} onClick={() => setFilter(filter === t ? "all" : t)}>
-              {t === ARCHIVE_TAG ? `${t} (${archivedCount})` : t}
-            </button>
-          ))}
-        </div>
-      )}
+        ))}
+      </div>
 
       {filtered.length === 0 ? (
         query || filter !== "all" ? (
@@ -404,7 +353,6 @@ function WordBank({ words, tags, onMaster, onDelete, onAdd, onEditTag, openAdd, 
                 onToggle={() => setOpenId(openId === w.id ? null : w.id)}
                 onMaster={onMaster}
                 onDelete={onDelete}
-                tags={tags}
                 onEditTag={onEditTag}
               />
             ))}
@@ -439,7 +387,6 @@ function WordBank({ words, tags, onMaster, onDelete, onAdd, onEditTag, openAdd, 
 
       {openAdd && (
         <AddWordModal
-          tags={activeTags}
           onClose={() => setOpenAdd(false)}
           onAdd={onAdd}
         />

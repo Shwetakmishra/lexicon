@@ -36,15 +36,8 @@ function App() {
   const [view, setView] = React.useState("bank");
   const [openAdd, setOpenAdd] = React.useState(false);
 
-  // tags are derived from whatever words exist — no separate store needed
-  const tags = React.useMemo(() => {
-    const out = [];
-    for (const w of words || []) if (w.tag && !out.includes(w.tag)) out.push(w.tag);
-    return out;
-  }, [words]);
-  // everything except the archive — this is what gets counted, studied and reviewed
-  const activeWords = React.useMemo(() => (words || []).filter((w) => !isArchived(w)), [words]);
-  const activeTags = React.useMemo(() => tags.filter((t) => t !== ARCHIVE_TAG), [tags]);
+  // untagged words are the active set — what gets counted, studied and reviewed
+  const activeWords = React.useMemo(() => (words || []).filter((w) => !isShelved(w)), [words]);
 
   const refetch = React.useCallback(async () => {
     try { setWords(await dbFetchWords()); } catch (e) { /* keep prior state */ }
@@ -163,7 +156,6 @@ function App() {
           {view === "bank" && (
             <WordBank
               words={words}
-              tags={tags}
               onMaster={toggleMaster}
               onDelete={deleteWord}
               onAdd={addWord}
@@ -175,7 +167,7 @@ function App() {
           {view === "study" && (
             <StudyMode
               words={activeWords}
-              tags={activeTags}
+              tags={[]}
               onMaster={toggleMaster}
               onReview={(id) => markReviewed(id, false)}
             />
@@ -192,7 +184,7 @@ function App() {
             <Progress
               words={activeWords}
               activityDates={activityDates}
-              tags={activeTags}
+              tags={[]}
               streak={streak}
             />
           )}
