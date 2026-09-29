@@ -40,7 +40,7 @@ function Progress({ words, activityDates, tags, streak }) {
   // per-tag breakdown
   const tagBreakdown = React.useMemo(() => {
     const counts = {};
-    words.forEach((w) => { counts[w.tag] = (counts[w.tag] || 0) + 1; });
+    words.forEach((w) => { if (w.tag) counts[w.tag] = (counts[w.tag] || 0) + 1; });
     const max = Math.max(1, ...Object.values(counts));
     return Object.entries(counts)
       .sort((a, b) => b[1] - a[1])

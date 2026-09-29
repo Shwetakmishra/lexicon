@@ -54,11 +54,14 @@ function relDate(ts) {
   return Math.floor(diff / 30) + "mo ago";
 }
 
-/* ---- archive: words tagged "Archive" are kept in the bank but excluded
-   from counts, study, review and progress ---- */
+/* ---- shelf tags: a word is either active (untagged) or shelved as Done or
+   Archive. Shelved words stay in the bank under their own pill but are
+   excluded from "All", counts, study, review and progress ---- */
+const DONE_TAG = "Done";
 const ARCHIVE_TAG = "Archive";
-function isArchived(word) {
-  return word.tag === ARCHIVE_TAG;
+const SHELF_TAGS = [DONE_TAG, ARCHIVE_TAG];
+function isShelved(word) {
+  return SHELF_TAGS.includes(word.tag);
 }
 
 /* ---- spaced repetition: bucket-based ----
