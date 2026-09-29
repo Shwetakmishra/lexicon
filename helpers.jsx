@@ -54,6 +54,13 @@ function relDate(ts) {
   return Math.floor(diff / 30) + "mo ago";
 }
 
+/* ---- archive: words tagged "Archive" are kept in the bank but excluded
+   from counts, study, review and progress ---- */
+const ARCHIVE_TAG = "Archive";
+function isArchived(word) {
+  return word.tag === ARCHIVE_TAG;
+}
+
 /* ---- spaced repetition: bucket-based ----
    reviewLevel 0..3 maps to review intervals of 1 / 3 / 7 / 14 days.
    A word is "due" if never reviewed, or elapsed >= its bucket interval. */
