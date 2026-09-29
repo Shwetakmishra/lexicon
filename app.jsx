@@ -42,6 +42,9 @@ function App() {
     for (const w of words || []) if (w.tag && !out.includes(w.tag)) out.push(w.tag);
     return out;
   }, [words]);
+  // everything except the archive — this is what gets counted, studied and reviewed
+  const activeWords = React.useMemo(() => (words || []).filter((w) => !isArchived(w)), [words]);
+  const activeTags = React.useMemo(() => tags.filter((t) => t !== ARCHIVE_TAG), [tags]);
 
   const refetch = React.useCallback(async () => {
     try { setWords(await dbFetchWords()); } catch (e) { /* keep prior state */ }
@@ -149,7 +152,7 @@ function App() {
   }
 
   const streak = computeStreak(activityDates);
-  const counts = { total: words.length, due: dueWords(words).length };
+  const counts = { total: activeWords.length, due: dueWords(activeWords).length };
 
   return (
     <div className="app">
@@ -171,15 +174,15 @@ function App() {
           )}
           {view === "study" && (
             <StudyMode
-              words={words}
-              tags={tags}
+              words={activeWords}
+              tags={activeTags}
               onMaster={toggleMaster}
               onReview={(id) => markReviewed(id, false)}
             />
           )}
           {view === "due" && (
             <DueToday
-              words={words}
+              words={activeWords}
               onReview={(id) => markReviewed(id, true)}
               onMaster={toggleMaster}
               goStudy={() => setView("study")}
@@ -187,9 +190,9 @@ function App() {
           )}
           {view === "progress" && (
             <Progress
-              words={words}
+              words={activeWords}
               activityDates={activityDates}
-              tags={tags}
+              tags={activeTags}
               streak={streak}
             />
           )}

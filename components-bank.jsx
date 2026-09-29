@@ -322,8 +322,8 @@ function WordBank({ words, tags, onMaster, onDelete, onAdd, onEditTag, openAdd, 
   const [openId, setOpenId] = React.useState(null);
 
   const filtered = React.useMemo(() => {
-    let list = words;
-    if (filter !== "all") list = list.filter((w) => w.tag === filter);
+    // "All" means active words; archived ones only show under the Archive pill
+    let list = filter === "all" ? words.filter((w) => !isArchived(w)) : words.filter((w) => w.tag === filter);
     const q = query.trim().toLowerCase();
     if (q) list = list.filter((w) => w.word.toLowerCase().includes(q) || (w.definition || "").toLowerCase().includes(q));
     return [...list].sort((a, b) => b.addedAt - a.addedAt);
@@ -334,6 +334,10 @@ function WordBank({ words, tags, onMaster, onDelete, onAdd, onEditTag, openAdd, 
   // reset filter if its tag is removed
   React.useEffect(() => { if (filter !== "all" && !tags.includes(filter)) setFilter("all"); }, [tags]);
 
+  const activeCount = words.filter((w) => !isArchived(w)).length;
+  const archivedCount = words.length - activeCount;
+  const activeTags = tags.filter((t) => t && t !== ARCHIVE_TAG);
+
   const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const safePage = Math.min(page, pageCount);
   const pageItems = filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
@@ -342,7 +346,7 @@ function WordBank({ words, tags, onMaster, onDelete, onAdd, onEditTag, openAdd, 
     <>
       <PageHead
         title="Word Bank"
-        subtitle={`${words.length} word${words.length === 1 ? "" : "s"} collected${query || filter !== "all" ? ` · ${filtered.length} matching` : ""}`}
+        subtitle={`${activeCount} word${activeCount === 1 ? "" : "s"} collected${archivedCount ? ` · ${archivedCount} archived` : ""}${query || filter !== "all" ? ` · ${filtered.length} matching` : ""}`}
         action={
           <button className="btn btn-primary" onClick={() => setOpenAdd(true)}>
             <Icon name="plus" />Add word
@@ -366,9 +370,9 @@ function WordBank({ words, tags, onMaster, onDelete, onAdd, onEditTag, openAdd, 
           <button className={`filter-pill ${filter === "all" ? "active" : ""}`} onClick={() => setFilter("all")}>
             All
           </button>
-          {tags.filter(Boolean).map((t) => (
+          {[...activeTags, ...(archivedCount ? [ARCHIVE_TAG] : [])].map((t) => (
             <button key={t} className={`filter-pill ${filter === t ? "active" : ""}`} onClick={() => setFilter(filter === t ? "all" : t)}>
-              {t}
+              {t === ARCHIVE_TAG ? `${t} (${archivedCount})` : t}
             </button>
           ))}
         </div>
@@ -435,7 +439,7 @@ function WordBank({ words, tags, onMaster, onDelete, onAdd, onEditTag, openAdd, 
 
       {openAdd && (
         <AddWordModal
-          tags={tags}
+          tags={activeTags}
           onClose={() => setOpenAdd(false)}
           onAdd={onAdd}
         />
